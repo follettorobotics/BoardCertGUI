@@ -5,10 +5,10 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="d980b106-c58b-46c6-ab75-d3134d0459dd" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/message_formatter/message_formatter.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/GUI/firmware_tester_app.py" beforeDir="false" afterPath="$PROJECT_DIR$/GUI/firmware_tester_app.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/connection/tcp_client.py" beforeDir="false" afterPath="$PROJECT_DIR$/connection/tcp_client.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/message_formatter/message_formatter.py" beforeDir="false" afterPath="$PROJECT_DIR$/message_formatter/message_formatter.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -28,6 +28,9 @@
   <component name="MarkdownSettingsMigration">
     <option name="stateVersion" value="1" />
   </component>
+  <component name="ProjectColorInfo"><![CDATA[{
+  "associatedIndex": 0
+}]]></component>
   <component name="ProjectId" id="2giAT92fBk29P6PBDHgR7H1kJzr" />
   <component name="ProjectLevelVcsManager" settingsEditedManually="true">
     <ConfirmationsSetting value="2" id="Add" />
@@ -40,6 +43,7 @@
   "keyToString": {
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "WebServerToolWindowFactoryState": "false",
+    "git-widget-placeholder": "main",
     "last_opened_file_path": "C:/Users/Owner/OneDrive/바탕 화면/BoardCertGUI/main.py",
     "node.js.detected.package.eslint": "true",
     "node.js.detected.package.tslint": "true",
@@ -94,8 +98,8 @@
     <option name="version" value="3" />
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
-    <SUITE FILE_PATH="coverage/BoardCertGUI$tcp_client.coverage" NAME="tcp_client Coverage Results" MODIFIED="1716290031657" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/connection" />
     <SUITE FILE_PATH="coverage/BoardCertGUI$firmware_tester_app.coverage" NAME="firmware_tester_app Coverage Results" MODIFIED="1716382234385" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/GUI" />
-    <SUITE FILE_PATH="coverage/BoardCertGUI$main.coverage" NAME="main Coverage Results" MODIFIED="1716385811762" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/BoardCertGUI$tcp_client.coverage" NAME="tcp_client Coverage Results" MODIFIED="1716290031657" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/connection" />
+    <SUITE FILE_PATH="coverage/BoardCertGUI$main.coverage" NAME="main Coverage Results" MODIFIED="1716428935612" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
   </component>
 </project>
