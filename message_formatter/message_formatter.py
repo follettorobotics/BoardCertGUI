@@ -45,7 +45,7 @@ class MessageFormatter:
         return bytes(request)
 
     @staticmethod
-    def motor_cw_message(motor_number: int):
+    def internal_motor_cw_message(motor_number: int):
         # REQUEST_HEAD
         request = bytearray()
         request.append(0x7E)
@@ -61,7 +61,7 @@ class MessageFormatter:
         return bytes(request)
 
     @staticmethod
-    def motor_ccw_message(motor_number: int):
+    def internal_motor_ccw_message(motor_number: int):
         # REQUEST_HEAD
         request = bytearray()
         request.append(0x7E)
@@ -71,6 +71,22 @@ class MessageFormatter:
         request.append(motor_number)
         # CW
         request.append(0xff)
+        # END BYTE
+        request.append(0XAA)
+
+        return bytes(request)
+
+    @staticmethod
+    def external_motor_control_message(motor_number: int):
+        # REQUEST_HEAD
+        request = bytearray()
+        request.append(0x7E)
+        # COMMAND
+        request.append(0xB3)
+        # RELAY NUMBER
+        request.append(motor_number)
+        # CW
+        request.append(0x00)
         # END BYTE
         request.append(0XAA)
 

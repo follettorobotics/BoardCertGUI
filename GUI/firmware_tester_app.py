@@ -110,6 +110,53 @@ class FirmwareTesterApp:
         self.status_label.pack(pady=5)
 
         self.relay_frame = tk.Frame(self.master)
+        self.internal_motor_frame = tk.Frame(self.master)
+        self.external_motor_frame = tk.Frame(self.master)
+
+    def internal_motor_callback(self, motor, direction):
+        if direction == "CW":
+            command = self.message_formatter.internal_motor_cw_message(motor)
+        else:
+            command = self.message_formatter.internal_motor_ccw_message(motor)
+        FirmwareTesterApp.set_operation_variable(True)
+        response = self.tcp_client.send_message(command)
+        print(f"Motor {motor} turned {direction}: {response}")
+        FirmwareTesterApp.set_operation_variable(False)
+
+    def external_motor_callback(self, motor):
+        command = self.message_formatter.external_motor_control_message(motor)
+        FirmwareTesterApp.set_operation_variable(True)
+        response = self.tcp_client.send_message(command)
+        print(f"Motor {motor}: {response}")
+        FirmwareTesterApp.set_operation_variable(False)
+
+    def create_internal_motor_controls(self):
+        motor_var = tk.StringVar(self.master)
+        motor_var.set("Internal Motor 1")
+
+        motor_menu = tk.OptionMenu(self.internal_motor_frame, motor_var, "Internal Motor 1", "Internal Motor 2",
+                                   "Internal Motor 3", "Internal Motor 4", "Internal Motor 5", "Internal Motor 6")
+        motor_menu.pack(side=tk.LEFT, padx=5)
+
+        cw_button = tk.Button(self.internal_motor_frame, text="CW",
+                              command=lambda: self.internal_motor_callback(motor_var.get(), "CW"))
+        cw_button.pack(side=tk.LEFT, padx=5)
+
+        ccw_button = tk.Button(self.internal_motor_frame, text="CCW",
+                               command=lambda: self.internal_motor_callback(motor_var.get(), "CCW"))
+        ccw_button.pack(side=tk.LEFT, padx=5)
+
+    def create_external_motor_controls(self):
+        motor_var = tk.StringVar(self.master)
+        motor_var.set("External Motor 1")
+
+        motor_menu = tk.OptionMenu(self.external_motor_frame, motor_var, "External Motor 1", "External Motor 2",
+                                   "External Motor 3", "External Motor 4")
+        motor_menu.pack(side=tk.LEFT, padx=5)
+
+        cw_button = tk.Button(self.external_motor_frame, text="CONTROL",
+                              command=lambda: self.external_motor_callback(motor_var.get()))
+        cw_button.pack(side=tk.LEFT, padx=5)
 
     def relay_callback(self, state):
         relay = self.relay_var.get()
@@ -121,7 +168,9 @@ class FirmwareTesterApp:
             command = self.message_formatter.relay_on_message(relay_number)
         else:
             command = self.message_formatter.relay_off_message(relay_number)
+        FirmwareTesterApp.set_operation_variable(True)
         response = self.tcp_client.send_message(command)
+        FirmwareTesterApp.set_operation_variable(False)
         print(f"Relay {relay_number} turned {state}: {response}")
 
     def create_relay_controls(self):
@@ -143,7 +192,11 @@ class FirmwareTesterApp:
         self.status_label.config(text="Connected")
         self.create_sensor_display()
         self.create_relay_controls()
+        self.create_internal_motor_controls()
+        self.create_external_motor_controls()
         self.relay_frame.pack(side=tk.LEFT, padx=10, pady=10)
+        self.internal_motor_frame.pack(side=tk.LEFT, padx=10, pady=10)
+        self.external_motor_frame.pack(side=tk.LEFT, padx=10, pady=10)
         self.start_sensor_polling()
 
     def create_sensor_display(self):
