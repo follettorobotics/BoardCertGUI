@@ -1,13 +1,10 @@
 import threading
-import time
-import tkinter as tk
-from tkinter import ttk, scrolledtext
-
+import ttkbootstrap as ttk
 from connection.tcp_client import TcpClient
 from message_formatter.message_formatter import MessageFormatter  # 가정된 메시지 포맷터 클래스
 
 
-class SensorStatusDisplay(tk.Frame):
+class SensorStatusDisplay(ttk.Frame):
     def __init__(self, master, num_sensors=16):
         super().__init__(master)
         self.sensors = {f"Sensor {i + 1}": 0 for i in range(num_sensors)}
@@ -15,14 +12,25 @@ class SensorStatusDisplay(tk.Frame):
         self.create_sensor_displays()
         self.tcp_client = TcpClient()
         self.message_formatter = MessageFormatter()
+        self.polling_interval = 200  # milliseconds
 
     def create_sensor_displays(self):
-        for sensor_name in self.sensors:
-            canvas = tk.Canvas(self, width=50, height=60)
-            canvas.pack(side=tk.LEFT, padx=10, pady=10)
+        sensor_frame = ttk.LabelFrame(self, text="Sensors", padding=(10, 10))
+        sensor_frame.pack(side=ttk.TOP, padx=10, pady=10)
 
-            circle_id = canvas.create_oval(10, 10, 25, 25, fill="red")
-            text_id = canvas.create_text(20, 55, text=sensor_name, fill="black", font=("Helvetica", 8))
+        for i, sensor_name in enumerate(self.sensors):
+            row = i // 4
+            column = i % 4
+
+            frame = ttk.Frame(sensor_frame)
+            frame.grid(row=row, column=column, padx=5, pady=5)
+
+            canvas = ttk.Canvas(frame, width=30, height=30)
+            canvas.pack()
+
+            circle_id = canvas.create_oval(5, 5, 25, 25, fill="red")
+            text_id = ttk.Label(frame, text=sensor_name, font=("Helvetica", 10))
+            text_id.pack()
 
             self.sensor_canvases[sensor_name] = (canvas, circle_id, text_id)
 
@@ -30,6 +38,11 @@ class SensorStatusDisplay(tk.Frame):
         canvas, circle_id, text_id = self.sensor_canvases[sensor_name]
         color = "blue" if status == 1 else "red"
         canvas.itemconfig(circle_id, fill=color)
+
+    def poll_sensors(self):
+        if not FirmwareTesterApp.get_operation_variable():
+            self.simulate_sensor_updates()
+        self.after(self.polling_interval, self.poll_sensors)
 
     def simulate_sensor_updates(self):
         command = self.message_formatter.sensor_message()
@@ -46,30 +59,75 @@ class SensorStatusDisplay(tk.Frame):
     @staticmethod
     def _parse_sensor_value_1(sensor_value):
         sensor_value_1_map = {
-            'sensor_1': (sensor_value >> 7) & 1,  # table 1
-            'sensor_2': (sensor_value >> 6) & 1,  # table 2
-            'sensor_3': (sensor_value >> 5) & 1,  # table 3
-            'sensor_4': (sensor_value >> 4) & 1,  # top 1
-            'sensor_9': (sensor_value >> 3) & 1,  # bottom 3
-            'sensor_10': (sensor_value >> 2) & 1,  # height check 1
-            'sensor_11': (sensor_value >> 1) & 1,  # height check 2
-            'sensor_12': (sensor_value >> 0) & 1,  # height check 3
+            'Sensor 1': (sensor_value >> 7) & 1,
+            'Sensor 2': (sensor_value >> 6) & 1,
+            'Sensor 3': (sensor_value >> 5) & 1,
+            'Sensor 4': (sensor_value >> 4) & 1,
+            'Sensor 9': (sensor_value >> 3) & 1,
+            'Sensor 10': (sensor_value >> 2) & 1,
+            'Sensor 11': (sensor_value >> 1) & 1,
+            'Sensor 12': (sensor_value >> 0) & 1,
         }
         return sensor_value_1_map
 
     @staticmethod
     def _parse_sensor_value_2(sensor_value):
         sensor_value_2_map = {
-            'sensor_5': (sensor_value >> 7) & 1,  # bottom 1
-            'sensor_6': (sensor_value >> 6) & 1,  # top 2
-            'sensor_7': (sensor_value >> 5) & 1,  # bottom 2
-            'sensor_8': (sensor_value >> 4) & 1,  # top 3
-            'sensor_13': (sensor_value >> 3) & 1,  # folletto coffee sensor
-            'sensor_14': (sensor_value >> 2) & 1,  # folletto table
-            'sensor_15': (sensor_value >> 1) & 1,  # beer machine 1 home
-            'sensor_16': (sensor_value >> 0) & 1,  # beer machine 2 home
+            'Sensor 5': (sensor_value >> 7) & 1,
+            'Sensor 6': (sensor_value >> 6) & 1,
+            'Sensor 7': (sensor_value >> 5) & 1,
+            'Sensor 8': (sensor_value >> 4) & 1,
+            'Sensor 13': (sensor_value >> 3) & 1,
+            'Sensor 14': (sensor_value >> 2) & 1,
+            'Sensor 15': (sensor_value >> 1) & 1,
+            'Sensor 16': (sensor_value >> 0) & 1,
         }
         return sensor_value_2_map
+
+
+class LoadCellDisplay(ttk.Frame):
+    def __init__(self, master, num_load_cells=16):
+        super().__init__(master)
+        self.load_cells = {f"Load Cell {i + 1}": 0 for i in range(num_load_cells)}
+        self.load_cell_labels = {}
+        self.create_load_cell_displays()
+        self.polling_interval = 1000  # milliseconds
+
+    def create_load_cell_displays(self):
+        load_cell_frame = ttk.LabelFrame(self, text="Load Cells", padding=(10, 10))
+        load_cell_frame.pack(side=ttk.TOP, padx=10, pady=10)
+
+        for i, load_cell_name in enumerate(self.load_cells):
+            row = i // 4
+            column = i % 4
+
+            frame = ttk.Frame(load_cell_frame)
+            frame.grid(row=row, column=column, padx=10, pady=10)
+
+            label = ttk.Label(frame, text=f"{load_cell_name}", font=("Helvetica", 12, "bold"))
+            label.pack()
+
+            value_label = ttk.Label(frame, text="0", font=("Helvetica", 14))
+            value_label.pack()
+
+            self.load_cell_labels[load_cell_name] = value_label
+
+    def update_load_cell_value(self, load_cell_name, value):
+        label = self.load_cell_labels[load_cell_name]
+        label.config(text=f"{value}")
+
+    def poll_load_cells(self):
+        if not FirmwareTesterApp.get_operation_variable():
+            self.simulate_load_cell_updates()
+        self.after(self.polling_interval, self.poll_load_cells)
+
+    def simulate_load_cell_updates(self):
+        # This function should be updated to get real values from the TCP client
+        for load_cell_name in self.load_cells:
+            # Simulate load cell value update
+            new_value = self.load_cells[load_cell_name] + 1  # Replace with real data retrieval
+            self.update_load_cell_value(load_cell_name, new_value)
+            self.load_cells[load_cell_name] = new_value
 
 
 class FirmwareTesterApp:
@@ -90,37 +148,139 @@ class FirmwareTesterApp:
 
     def __init__(self, master):
         self.master = master
-        self.master.title("Firmware Tester")
+        self.master.title("보드 테스트 프로그램")
         self.tcp_client = TcpClient()
         self.message_formatter = MessageFormatter()
         self.sensor_display = None
+        self.load_cell_display = None
 
         self.create_widgets()
         self.command_buttons = []
 
     def create_widgets(self):
-        self.connect_button = tk.Button(self.master, text="Connect", command=self.connect)
+        self.connect_button = ttk.Button(self.master, text="연결 시도", command=self.connect)
         self.connect_button.pack(pady=10)
 
-        self.status_label = tk.Label(self.master, text="Not connected")
-        self.status_label.pack(pady=5)
+        self.main_frame = ttk.Frame(self.master)
+        self.main_frame.pack(pady=10)
+
+        # Top frame for sensor display and control elements
+        self.top_frame = ttk.Frame(self.main_frame)
+        self.top_frame.pack(side=ttk.TOP, fill=ttk.X, padx=10, pady=10)
+
+        self.left_frame = ttk.Frame(self.top_frame)
+        self.left_frame.pack(side=ttk.LEFT, padx=10, pady=10)
+
+        self.sensor_display = SensorStatusDisplay(self.left_frame)
+        self.sensor_display.pack(side=ttk.TOP, padx=10, pady=10)
+
+        self.right_frame = ttk.Frame(self.top_frame)
+        self.right_frame.pack(side=ttk.RIGHT, padx=10, pady=10)
+
+        self.relay_frame = ttk.LabelFrame(self.right_frame, text="Relay Control", padding=(10, 10))
+        self.relay_frame.pack(fill=ttk.X, pady=10)
+
+        self.internal_motor_frame = ttk.LabelFrame(self.right_frame, text="Internal Motor Control", padding=(10, 10))
+        self.internal_motor_frame.pack(fill=ttk.X, pady=10)
+
+        self.external_motor_frame = ttk.LabelFrame(self.right_frame, text="External Motor Control", padding=(10, 10))
+        self.external_motor_frame.pack(fill=ttk.X, pady=10)
+
+        self.create_relay_controls()
+        self.create_internal_motor_controls()
+        self.create_external_motor_controls()
+
+        # Bottom frame for load cell display
+        self.bottom_frame = ttk.Frame(self.main_frame)
+        self.bottom_frame.pack(side=ttk.TOP, fill=ttk.X, padx=10, pady=10)
+
+        self.load_cell_display = LoadCellDisplay(self.bottom_frame)
+        self.load_cell_display.pack(side=ttk.TOP, padx=10, pady=10)
+
+    def internal_motor_callback(self, motor, direction):
+        if direction == "CW":
+            command = self.message_formatter.internal_motor_cw_message(motor)
+        else:
+            command = self.message_formatter.internal_motor_ccw_message(motor)
+        FirmwareTesterApp.set_operation_variable(True)
+        response = self.tcp_client.send_message(command)
+        print(f"Motor {motor} turned {direction}: {response}")
+        FirmwareTesterApp.set_operation_variable(False)
+
+    def external_motor_callback(self, motor):
+        command = self.message_formatter.external_motor_control_message(motor)
+        FirmwareTesterApp.set_operation_variable(True)
+        response = self.tcp_client.send_message(command)
+        print(f"Motor {motor}: {response}")
+        FirmwareTesterApp.set_operation_variable(False)
+
+    def create_internal_motor_controls(self):
+        motor_var = ttk.StringVar(self.master)
+        motor_var.set("Internal Motor 1")
+
+        motor_menu = ttk.OptionMenu(self.internal_motor_frame, motor_var, "Internal Motor 1",
+                                    "Internal Motor 2","Internal Motor 3", "Internal Motor 4",
+                                    "Internal Motor 5", "Internal Motor 6")
+        motor_menu.pack(side=ttk.LEFT, padx=5)
+
+        cw_button = ttk.Button(self.internal_motor_frame, text="CW",
+                               command=lambda: self.internal_motor_callback(motor_var.get(), "CW"))
+        cw_button.pack(side=ttk.LEFT, padx=5)
+
+        ccw_button = ttk.Button(self.internal_motor_frame, text="CCW",
+                                command=lambda: self.internal_motor_callback(motor_var.get(), "CCW"))
+        ccw_button.pack(side=ttk.LEFT, padx=5)
+
+    def create_external_motor_controls(self):
+        motor_var = ttk.StringVar(self.master)
+        motor_var.set("External Motor 1")
+
+        motor_menu = ttk.OptionMenu(self.external_motor_frame, motor_var, "External Motor 1",
+                                    "External Motor 2", "External Motor 3", "External Motor 4")
+        motor_menu.pack(side=ttk.LEFT, padx=5)
+
+        control_button = ttk.Button(self.external_motor_frame, text="CONTROL",
+                                    command=lambda: self.external_motor_callback(motor_var.get()))
+        control_button.pack(side=ttk.LEFT, padx=5)
+
+    def relay_callback(self, state):
+        relay = self.relay_var.get()
+        self.send_relay_command(relay, state)
+
+    def send_relay_command(self, relay, state):
+        relay_number = relay.split(" ")[1]
+        if state == "ON":
+            command = self.message_formatter.relay_on_message(relay_number)
+        else:
+            command = self.message_formatter.relay_off_message(relay_number)
+        FirmwareTesterApp.set_operation_variable(True)
+        response = self.tcp_client.send_message(command)
+        FirmwareTesterApp.set_operation_variable(False)
+        print(f"Relay {relay_number} turned {state}: {response}")
+
+    def create_relay_controls(self):
+        self.relay_var = ttk.StringVar(self.master)
+        self.relay_var.set("Relay 1")
+
+        self.relay_menu = ttk.OptionMenu(self.relay_frame, self.relay_var, "Relay 1",
+                                         "Relay 2", "Relay 3", "Relay 4",
+                                         "Relay 5", "Relay 6", "Relay 7")
+        self.relay_menu.pack(side=ttk.LEFT, padx=5)
+
+        self.on_button = ttk.Button(self.relay_frame, text="ON", command=lambda: self.relay_callback("ON"))
+        self.on_button.pack(side=ttk.LEFT, padx=5)
+
+        self.off_button = ttk.Button(self.relay_frame, text="OFF", command=lambda: self.relay_callback("OFF"))
+        self.off_button.pack(side=ttk.LEFT, padx=5)
 
     def connect(self):
-        self.tcp_client.connect()
-        self.status_label.config(text="Connected")
-        self.create_sensor_display()
-        self.start_sensor_simulation()
+        if self.tcp_client.connect():
+            self.connect_button.config(text="연결 완료")
+            self.start_sensor_polling()
 
-    def create_sensor_display(self):
-        if not self.sensor_display:
-            self.sensor_display = SensorStatusDisplay(self.master)
-            self.sensor_display.pack(pady=10)
-
-    def start_sensor_simulation(self):
-        if not FirmwareTesterApp.get_operation_variable():
-            FirmwareTesterApp.set_operation_variable(True)
-            thread = threading.Thread(target=self.sensor_display.simulate_sensor_updates, daemon=True)
-            thread.start()
+    def start_sensor_polling(self):
+        self.sensor_display.poll_sensors()
+        self.load_cell_display.poll_load_cells()
 
     def on_close(self):
         FirmwareTesterApp.set_operation_variable(False)

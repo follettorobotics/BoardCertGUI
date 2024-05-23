@@ -17,9 +17,11 @@ class TcpClient:
         try:
             self.client_socket.connect((self.host, self.port))
             logger.debug("Connected to server.")
+            return True
         except Exception as e:
             logger.error(f"Connection failed: {e}")
             self.client_socket = None
+        return False
 
     def send_message(self, message):
         if not self.client_socket:
