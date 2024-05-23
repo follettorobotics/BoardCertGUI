@@ -91,7 +91,7 @@ class LoadCellDisplay(ttk.Frame):
         self.load_cells = {f"Load Cell {i + 1}": 0 for i in range(num_load_cells)}
         self.load_cell_labels = {}
         self.create_load_cell_displays()
-        self.polling_interval = 200  # milliseconds
+        self.polling_interval = 1000  # milliseconds
 
     def create_load_cell_displays(self):
         load_cell_frame = ttk.LabelFrame(self, text="Load Cells", padding=(10, 10))
