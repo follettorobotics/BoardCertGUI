@@ -21,7 +21,7 @@ class SensorStatusDisplay(tk.Frame):
             canvas.pack(side=tk.LEFT, padx=10, pady=10)
 
             circle_id = canvas.create_oval(10, 10, 30, 30, fill="red")
-            text_id = canvas.create_text(30, 50, text=sensor_name, fill="black", font=("Helvetica", 8))  # text position adjusted
+            text_id = canvas.create_text(30, 50, text=sensor_name, fill="black", font=("Helvetica", 8))
 
             self.sensor_canvases[sensor_name] = (canvas, circle_id, text_id)
 
