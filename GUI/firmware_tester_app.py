@@ -19,8 +19,8 @@ class SensorStatusDisplay(ttk.Frame):
         sensor_frame.pack(side=ttk.TOP, padx=10, pady=10)
 
         for i, sensor_name in enumerate(self.sensors):
-            row = i // 6
-            column = i % 6
+            row = i // 4
+            column = i % 4
 
             frame = ttk.Frame(sensor_frame)
             frame.grid(row=row, column=column, padx=5, pady=5)
@@ -98,8 +98,8 @@ class LoadCellDisplay(ttk.Frame):
         load_cell_frame.pack(side=ttk.TOP, padx=10, pady=10)
 
         for i, load_cell_name in enumerate(self.load_cells):
-            row = i // 6
-            column = i % 6
+            row = i // 4
+            column = i % 4
 
             frame = ttk.Frame(load_cell_frame)
             frame.grid(row=row, column=column, padx=10, pady=10)
@@ -218,8 +218,9 @@ class FirmwareTesterApp:
         motor_var = ttk.StringVar(self.master)
         motor_var.set("Internal Motor 1")
 
-        motor_menu = ttk.OptionMenu(self.internal_motor_frame, motor_var, "Internal Motor 1", "Internal Motor 2",
-                                    "Internal Motor 3", "Internal Motor 4", "Internal Motor 5", "Internal Motor 6")
+        motor_menu = ttk.OptionMenu(self.internal_motor_frame, motor_var, "Internal Motor 1",
+                                    "Internal Motor 2","Internal Motor 3", "Internal Motor 4",
+                                    "Internal Motor 5", "Internal Motor 6")
         motor_menu.pack(side=ttk.LEFT, padx=5)
 
         cw_button = ttk.Button(self.internal_motor_frame, text="CW",
@@ -234,8 +235,8 @@ class FirmwareTesterApp:
         motor_var = ttk.StringVar(self.master)
         motor_var.set("External Motor 1")
 
-        motor_menu = ttk.OptionMenu(self.external_motor_frame, motor_var, "External Motor 1", "External Motor 2",
-                                    "External Motor 3", "External Motor 4")
+        motor_menu = ttk.OptionMenu(self.external_motor_frame, motor_var, "External Motor 1",
+                                    "External Motor 2", "External Motor 3", "External Motor 4")
         motor_menu.pack(side=ttk.LEFT, padx=5)
 
         control_button = ttk.Button(self.external_motor_frame, text="CONTROL",
@@ -261,7 +262,8 @@ class FirmwareTesterApp:
         self.relay_var = ttk.StringVar(self.master)
         self.relay_var.set("Relay 1")
 
-        self.relay_menu = ttk.OptionMenu(self.relay_frame, self.relay_var, "Relay 1", "Relay 2", "Relay 3", "Relay 4",
+        self.relay_menu = ttk.OptionMenu(self.relay_frame, self.relay_var, "Relay 1",
+                                         "Relay 2", "Relay 3", "Relay 4",
                                          "Relay 5", "Relay 6", "Relay 7")
         self.relay_menu.pack(side=ttk.LEFT, padx=5)
 
