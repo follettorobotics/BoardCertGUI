@@ -91,3 +91,15 @@ class MessageFormatter:
         request.append(0XAA)
 
         return bytes(request)
+
+    @staticmethod
+    def get_loadcell_value_message():
+        # REQUEST_HEAD
+        request = bytearray()
+        request.append(0x7E)
+        # COMMAND
+        request.append(0xB4)
+        # END BYTE
+        request.append(0XAA)
+
+        return bytes(request)

@@ -1,10 +1,10 @@
-import tkinter as tk
+import ttkbootstrap as ttk
 
 from GUI.firmware_tester_app import FirmwareTesterApp
 
 if __name__ == "__main__":
-    root = tk.Tk()
-    root.title("Firmware Command Sender")
-    app = FirmwareTesterApp(root)
-    root.protocol("WM_DELETE_WINDOW", app.on_close)
-    root.mainloop()
+    app = ttk.Window("보드 테스트 프로그램", themename="flatly")
+    app.geometry("1000x800")
+    FirmwareTesterApp(app)
+    app.protocol("WM_DELETE_WINDOW", app.quit)
+    app.mainloop()
