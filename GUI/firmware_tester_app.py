@@ -92,6 +92,8 @@ class LoadCellDisplay(ttk.Frame):
         self.load_cell_labels = {}
         self.create_load_cell_displays()
         self.polling_interval = 1000  # milliseconds
+        self.tcp_client = TcpClient()
+        self.message_formatter = MessageFormatter()
 
     def create_load_cell_displays(self):
         load_cell_frame = ttk.LabelFrame(self, text="Load Cells", padding=(10, 10))
@@ -123,11 +125,23 @@ class LoadCellDisplay(ttk.Frame):
 
     def simulate_load_cell_updates(self):
         # This function should be updated to get real values from the TCP client
-        for load_cell_name in self.load_cells:
-            # Simulate load cell value update
-            new_value = self.load_cells[load_cell_name] + 1  # Replace with real data retrieval
-            self.update_load_cell_value(load_cell_name, new_value)
-            self.load_cells[load_cell_name] = new_value
+        command = self.message_formatter.get_loadcell_value_message()
+        response = self.tcp_client.send_message(command)
+        load_cell_values = self.parse_load_cell_values(response)
+
+        for i, value in enumerate(load_cell_values):
+            load_cell_name = f"Load Cell {i + 1}"
+            self.update_load_cell_value(load_cell_name, value)
+
+    @staticmethod
+    def parse_load_cell_values(response):
+        load_cell_values = []
+        start_index = 2
+        for i in range(16):
+            value = int.from_bytes(response[start_index:start_index + 4], 'little')
+            load_cell_values.append(value)
+            start_index += 4
+        return load_cell_values
 
 
 class FirmwareTesterApp:
