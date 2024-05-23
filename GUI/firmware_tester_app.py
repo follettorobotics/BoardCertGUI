@@ -148,7 +148,7 @@ class FirmwareTesterApp:
 
     def __init__(self, master):
         self.master = master
-        self.master.title("Firmware Tester")
+        self.master.title("보드 테스트 프로그램")
         self.tcp_client = TcpClient()
         self.message_formatter = MessageFormatter()
         self.sensor_display = None
