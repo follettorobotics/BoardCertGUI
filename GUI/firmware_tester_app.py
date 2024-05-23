@@ -50,28 +50,28 @@ class SensorStatusDisplay(tk.Frame):
     @staticmethod
     def _parse_sensor_value_1(sensor_value):
         sensor_value_1_map = {
-            'Sensor 1': (sensor_value >> 7) & 1,  # table 1
-            'Sensor 2': (sensor_value >> 6) & 1,  # table 2
-            'Sensor 3': (sensor_value >> 5) & 1,  # table 3
-            'Sensor 4': (sensor_value >> 4) & 1,  # top 1
-            'Sensor 9': (sensor_value >> 3) & 1,  # bottom 3
-            'Sensor 10': (sensor_value >> 2) & 1,  # height check 1
-            'Sensor 11': (sensor_value >> 1) & 1,  # height check 2
-            'Sensor 12': (sensor_value >> 0) & 1,  # height check 3
+            'Sensor 1': (sensor_value >> 7) & 1,        # table 1
+            'Sensor 2': (sensor_value >> 6) & 1,        # table 2
+            'Sensor 3': (sensor_value >> 5) & 1,        # table 3
+            'Sensor 4': (sensor_value >> 4) & 1,        # top 1
+            'Sensor 9': (sensor_value >> 3) & 1,        # bottom 3
+            'Sensor 10': (sensor_value >> 2) & 1,       # height check 1
+            'Sensor 11': (sensor_value >> 1) & 1,       # height check 2
+            'Sensor 12': (sensor_value >> 0) & 1,       # height check 3
         }
         return sensor_value_1_map
 
     @staticmethod
     def _parse_sensor_value_2(sensor_value):
         sensor_value_2_map = {
-            'Sensor 5': (sensor_value >> 7) & 1,  # bottom 1
-            'Sensor 6': (sensor_value >> 6) & 1,  # top 2
-            'Sensor 7': (sensor_value >> 5) & 1,  # bottom 2
-            'Sensor 8': (sensor_value >> 4) & 1,  # top 3
-            'Sensor 13': (sensor_value >> 3) & 1,  # folletto coffee sensor
-            'Sensor 14': (sensor_value >> 2) & 1,  # folletto table
-            'Sensor 15': (sensor_value >> 1) & 1,  # beer machine 1 home
-            'Sensor 16': (sensor_value >> 0) & 1,  # beer machine 2 home
+            'Sensor 5': (sensor_value >> 7) & 1,        # bottom 1
+            'Sensor 6': (sensor_value >> 6) & 1,        # top 2
+            'Sensor 7': (sensor_value >> 5) & 1,        # bottom 2
+            'Sensor 8': (sensor_value >> 4) & 1,        # top 3
+            'Sensor 13': (sensor_value >> 3) & 1,       # printer coffee sensor
+            'Sensor 14': (sensor_value >> 2) & 1,       # printer table
+            'Sensor 15': (sensor_value >> 1) & 1,       # beer machine 1 home
+            'Sensor 16': (sensor_value >> 0) & 1,       # beer machine 2 home
         }
         return sensor_value_2_map
 
