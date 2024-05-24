@@ -1,7 +1,29 @@
 import threading
+
 import ttkbootstrap as ttk
 from connection.tcp_client import TcpClient
 from message_formatter.message_formatter import MessageFormatter  # 가정된 메시지 포맷터 클래스
+
+
+class ScrollableFrame(ttk.Frame):
+    def __init__(self, master, *args, **kwargs):
+        super().__init__(master, *args, **kwargs)
+        canvas = ttk.Canvas(self)
+        scrollbar = ttk.Scrollbar(self, orient="vertical", command=canvas.yview)
+        self.scrollable_frame = ttk.Frame(canvas)
+
+        self.scrollable_frame.bind(
+            "<Configure>",
+            lambda e: canvas.configure(
+                scrollregion=canvas.bbox("all")
+            )
+        )
+
+        canvas.create_window((0, 0), window=self.scrollable_frame, anchor="nw")
+        canvas.configure(yscrollcommand=scrollbar.set)
+
+        canvas.pack(side="left", fill="both", expand=True)
+        scrollbar.pack(side="right", fill="y")
 
 
 class SensorStatusDisplay(ttk.Frame):
@@ -16,7 +38,7 @@ class SensorStatusDisplay(ttk.Frame):
 
     def create_sensor_displays(self):
         sensor_frame = ttk.LabelFrame(self, text="Sensors", padding=(10, 10), style='Info.TLabelframe')
-        sensor_frame.pack(side=ttk.TOP, padx=10, pady=10, fill=ttk.X)
+        sensor_frame.pack(padx=10, pady=10, fill=ttk.BOTH, expand=True)
 
         for i, sensor_name in enumerate(self.sensors):
             row = i // 4
@@ -97,7 +119,7 @@ class LoadCellDisplay(ttk.Frame):
 
     def create_load_cell_displays(self):
         load_cell_frame = ttk.LabelFrame(self, text="Load Cells", padding=(10, 10), style='Info.TLabelframe')
-        load_cell_frame.pack(side=ttk.TOP, padx=10, pady=10, fill=ttk.X)
+        load_cell_frame.pack(padx=10, pady=10, fill=ttk.BOTH, expand=True)
 
         for i, load_cell_name in enumerate(self.load_cells):
             row = i // 4
@@ -145,7 +167,6 @@ class LoadCellDisplay(ttk.Frame):
 
 
 class FirmwareTesterApp:
-
     _operation = False
     _operation_lock = threading.Lock()
 
@@ -173,32 +194,32 @@ class FirmwareTesterApp:
 
     def create_widgets(self):
         self.connect_button = ttk.Button(self.master, text="연결 시도", command=self.connect, style='primary.TButton')
-        self.connect_button.pack(pady=(10, 5), padx=20)
+        self.connect_button.pack(pady=(10, 5))
 
-        self.main_frame = ttk.Frame(self.master)
-        self.main_frame.pack(pady=5, fill=ttk.X, expand=True)
+        self.main_frame = ScrollableFrame(self.master)
+        self.main_frame.pack(pady=5, fill=ttk.BOTH, expand=True)
 
-        self.top_frame = ttk.Frame(self.main_frame)
-        self.top_frame.pack(side=ttk.TOP, fill=ttk.X, padx=10, pady=(0, 10), expand=True)
+        self.top_frame = ttk.Frame(self.main_frame.scrollable_frame)
+        self.top_frame.pack(side=ttk.TOP, pady=(0, 10), expand=True)
 
         self.left_frame = ttk.Frame(self.top_frame)
-        self.left_frame.pack(side=ttk.LEFT, padx=20, pady=(5, 10), expand=True)
+        self.left_frame.pack(side=ttk.LEFT, pady=(5, 10), expand=True)
 
         self.sensor_display = SensorStatusDisplay(self.left_frame)
-        self.sensor_display.pack(side=ttk.TOP, padx=20, pady=(5, 10), fill=ttk.X, expand=True)
+        self.sensor_display.pack(pady=(5, 10), expand=True)
 
-        self.right_frame = ttk.Frame(self.top_frame, width=400)
-        self.right_frame.pack(side=ttk.RIGHT, padx=20, pady=(5, 10), fill=ttk.Y, expand=True)
+        self.right_frame = ttk.Frame(self.top_frame)
+        self.right_frame.pack(side=ttk.LEFT, padx=20, pady=(5, 10), expand=True)
 
         self.create_relay_controls()
         self.create_internal_motor_controls()
         self.create_external_motor_controls()
 
-        self.bottom_frame = ttk.Frame(self.main_frame)
-        self.bottom_frame.pack(side=ttk.TOP, fill=ttk.X, padx=20, pady=(5, 20), expand=True)
+        self.bottom_frame = ttk.Frame(self.main_frame.scrollable_frame)
+        self.bottom_frame.pack(side=ttk.TOP, fill=ttk.BOTH, padx=20, pady=(5, 20), expand=True)
 
         self.load_cell_display = LoadCellDisplay(self.bottom_frame)
-        self.load_cell_display.pack(side=ttk.TOP, padx=20, pady=(5, 10), fill=ttk.X, expand=True)
+        self.load_cell_display.pack(side=ttk.TOP, padx=20, pady=(5, 10), fill=ttk.BOTH, expand=True)
 
         self.status_bar = ttk.Label(self.master, text="Ready", relief=ttk.SUNKEN, anchor=ttk.W)
         self.status_bar.pack(side=ttk.BOTTOM, fill=ttk.X)
@@ -223,7 +244,7 @@ class FirmwareTesterApp:
     def create_internal_motor_controls(self):
         self.internal_motor_frame = ttk.LabelFrame(self.right_frame, text="Internal Motor Control", padding=(10, 10),
                                                    style='Info.TLabelframe')
-        self.internal_motor_frame.pack(fill=ttk.X, pady=10, expand=True)
+        self.internal_motor_frame.pack(fill=ttk.BOTH, pady=10, expand=True)
 
         motor_var = ttk.StringVar(self.master)
         motor_var.set("Internal Motor 1")
@@ -245,7 +266,7 @@ class FirmwareTesterApp:
     def create_external_motor_controls(self):
         self.external_motor_frame = ttk.LabelFrame(self.right_frame, text="External Motor Control", padding=(10, 10),
                                                    style='Info.TLabelframe')
-        self.external_motor_frame.pack(fill=ttk.X, pady=10, expand=True)
+        self.external_motor_frame.pack(fill=ttk.BOTH, pady=10, expand=True)
 
         motor_var = ttk.StringVar(self.master)
         motor_var.set("External Motor 1")
@@ -276,7 +297,7 @@ class FirmwareTesterApp:
     def create_relay_controls(self):
         self.relay_frame = ttk.LabelFrame(self.right_frame, text="Relay Control", padding=(10, 10),
                                           style='Info.TLabelframe')
-        self.relay_frame.pack(fill=ttk.X, pady=10, expand=True)
+        self.relay_frame.pack(fill=ttk.BOTH, pady=10, expand=True)
 
         self.relay_var = ttk.StringVar(self.master)
         self.relay_var.set("Relay 1")
@@ -305,3 +326,4 @@ class FirmwareTesterApp:
         FirmwareTesterApp.set_operation_variable(False)
         self.tcp_client.close_connection()
         self.master.destroy()
+
