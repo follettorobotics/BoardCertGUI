@@ -8,9 +8,9 @@ from GUI.firmware_tester_app import FirmwareTesterApp
 def center_window(root, width, height):
     screen_width = root.winfo_screenwidth()
     screen_height = root.winfo_screenheight()
-    x = (screen_width / 2) - (width / 2)
-    y = (screen_height / 2) - (height / 2)
-    root.geometry('%dx%d+%d+%d' % (width, height, x, y))
+    x = (screen_width // 2) - (width // 2)
+    y = (screen_height // 2) - (height // 2)
+    root.geometry(f"{width}x{height}+{x}+{y}")
 
 
 if __name__ == "__main__":
@@ -25,6 +25,6 @@ if __name__ == "__main__":
 
     center_window(app, window_width, window_height)
 
-    FirmwareTesterApp(app)
-    app.protocol("WM_DELETE_WINDOW", app.quit)
+    firmware_tester_app = FirmwareTesterApp(app)
+    app.protocol("WM_DELETE_WINDOW", firmware_tester_app.on_close)
     app.mainloop()

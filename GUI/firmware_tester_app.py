@@ -1,5 +1,7 @@
 import threading
-
+import queue
+import ctypes
+import time
 import ttkbootstrap as ttk
 from connection.tcp_client import TcpClient
 from message_formatter.message_formatter import MessageFormatter  # 가정된 메시지 포맷터 클래스
@@ -32,9 +34,7 @@ class SensorStatusDisplay(ttk.Frame):
         self.sensors = {f"Sensor {i + 1}": 0 for i in range(num_sensors)}
         self.sensor_canvases = {}
         self.create_sensor_displays()
-        self.tcp_client = TcpClient()
-        self.message_formatter = MessageFormatter()
-        self.polling_interval = 200  # milliseconds
+        self.polling_interval = 2000  # milliseconds
 
     def create_sensor_displays(self):
         sensor_frame = ttk.LabelFrame(self, text="Sensors", padding=(10, 10), style='Info.TLabelframe')
@@ -57,54 +57,9 @@ class SensorStatusDisplay(ttk.Frame):
             self.sensor_canvases[sensor_name] = (canvas, circle_id, text_id)
 
     def update_sensor_status(self, sensor_name, status):
-        canvas, circle_id, text_id = self.sensor_canvases[sensor_name]
+        canvas, circle_id, _ = self.sensor_canvases[sensor_name]
         color = "blue" if status == 1 else "red"
         canvas.itemconfig(circle_id, fill=color)
-
-    def poll_sensors(self):
-        if not FirmwareTesterApp.get_operation_variable():
-            self.simulate_sensor_updates()
-        self.after(self.polling_interval, self.poll_sensors)
-
-    def simulate_sensor_updates(self):
-        command = self.message_formatter.sensor_message()
-        response = self.tcp_client.send_message(command)
-        if len(response) > 4:
-            sensor_value_1 = response[2]
-            sensor_value_2 = response[3]
-            sensor_value_1_map = self._parse_sensor_value_1(sensor_value_1)
-            sensor_value_2_map = self._parse_sensor_value_2(sensor_value_2)
-
-            for sensor_name, status in {**sensor_value_1_map, **sensor_value_2_map}.items():
-                self.update_sensor_status(sensor_name, status)
-
-    @staticmethod
-    def _parse_sensor_value_1(sensor_value):
-        sensor_value_1_map = {
-            'Sensor 1': (sensor_value >> 7) & 1,
-            'Sensor 2': (sensor_value >> 6) & 1,
-            'Sensor 3': (sensor_value >> 5) & 1,
-            'Sensor 4': (sensor_value >> 4) & 1,
-            'Sensor 9': (sensor_value >> 3) & 1,
-            'Sensor 10': (sensor_value >> 2) & 1,
-            'Sensor 11': (sensor_value >> 1) & 1,
-            'Sensor 12': (sensor_value >> 0) & 1,
-        }
-        return sensor_value_1_map
-
-    @staticmethod
-    def _parse_sensor_value_2(sensor_value):
-        sensor_value_2_map = {
-            'Sensor 5': (sensor_value >> 7) & 1,
-            'Sensor 6': (sensor_value >> 6) & 1,
-            'Sensor 7': (sensor_value >> 5) & 1,
-            'Sensor 8': (sensor_value >> 4) & 1,
-            'Sensor 13': (sensor_value >> 3) & 1,
-            'Sensor 14': (sensor_value >> 2) & 1,
-            'Sensor 15': (sensor_value >> 1) & 1,
-            'Sensor 16': (sensor_value >> 0) & 1,
-        }
-        return sensor_value_2_map
 
 
 class LoadCellDisplay(ttk.Frame):
@@ -114,8 +69,6 @@ class LoadCellDisplay(ttk.Frame):
         self.load_cell_labels = {}
         self.create_load_cell_displays()
         self.polling_interval = 1000  # milliseconds
-        self.tcp_client = TcpClient()
-        self.message_formatter = MessageFormatter()
 
     def create_load_cell_displays(self):
         load_cell_frame = ttk.LabelFrame(self, text="Load Cells", padding=(10, 10), style='Info.TLabelframe')
@@ -140,31 +93,6 @@ class LoadCellDisplay(ttk.Frame):
         label = self.load_cell_labels[load_cell_name]
         label.config(text=f"{value}")
 
-    def poll_load_cells(self):
-        if not FirmwareTesterApp.get_operation_variable():
-            self.simulate_load_cell_updates()
-        self.after(self.polling_interval, self.poll_load_cells)
-
-    def simulate_load_cell_updates(self):
-        # This function should be updated to get real values from the TCP client
-        command = self.message_formatter.get_loadcell_value_message()
-        response = self.tcp_client.send_message(command)
-        load_cell_values = self.parse_load_cell_values(response)
-
-        for i, value in enumerate(load_cell_values):
-            load_cell_name = f"Load Cell {i + 1}"
-            self.update_load_cell_value(load_cell_name, value)
-
-    @staticmethod
-    def parse_load_cell_values(response):
-        load_cell_values = []
-        start_index = 2
-        for i in range(16):
-            value = int.from_bytes(response[start_index:start_index + 4], 'little')
-            load_cell_values.append(value)
-            start_index += 4
-        return load_cell_values
-
 
 class FirmwareTesterApp:
     _operation = False
@@ -186,11 +114,16 @@ class FirmwareTesterApp:
         self.master.title("보드 테스트 프로그램")
         self.tcp_client = TcpClient()
         self.message_formatter = MessageFormatter()
-        self.sensor_display = None
-        self.load_cell_display = None
+        self.sensor_display = SensorStatusDisplay(self.master)
+        self.load_cell_display = LoadCellDisplay(self.master)
+        self.sensor_queue = queue.Queue()
+        self.load_cell_queue = queue.Queue()
 
         self.create_widgets()
-        self.command_buttons = []
+        self.poll_queues()
+
+        self.tcp_thread = threading.Thread(target=self.tcp_worker, daemon=True)
+        self.tcp_thread.start()
 
     def create_widgets(self):
         self.connect_button = ttk.Button(self.master, text="연결 시도", command=self.connect, style='primary.TButton')
@@ -224,22 +157,36 @@ class FirmwareTesterApp:
         self.status_bar = ttk.Label(self.master, text="Ready", relief=ttk.SUNKEN, anchor=ttk.W)
         self.status_bar.pack(side=ttk.BOTTOM, fill=ttk.X)
 
-    def internal_motor_callback(self, motor, direction):
-        if direction == "CW":
-            command = self.message_formatter.internal_motor_cw_message(motor)
+    def connect(self):
+        if self.tcp_client.connect():
+            self.connect_button.config(text="연결 완료")
         else:
-            command = self.message_formatter.internal_motor_ccw_message(motor)
-        FirmwareTesterApp.set_operation_variable(True)
-        response = self.tcp_client.send_message(command)
-        print(f"Motor {motor} turned {direction}: {response}")
-        FirmwareTesterApp.set_operation_variable(False)
+            self.connect_button.config(text="연결 실패")
+
+    def internal_motor_callback(self, motor, direction):
+        try:
+            if direction == "CW":
+                command = self.message_formatter.internal_motor_cw_message(motor)
+            else:
+                command = self.message_formatter.internal_motor_ccw_message(motor)
+            FirmwareTesterApp.set_operation_variable(True)
+            response = self.tcp_client.send_message(command)
+            print(f"Motor {motor} turned {direction}: {response}")
+        except Exception as e:
+            print(f"Error during motor control: {e}")
+        finally:
+            FirmwareTesterApp.set_operation_variable(False)
 
     def external_motor_callback(self, motor):
-        command = self.message_formatter.external_motor_control_message(motor)
-        FirmwareTesterApp.set_operation_variable(True)
-        response = self.tcp_client.send_message(command)
-        print(f"Motor {motor}: {response}")
-        FirmwareTesterApp.set_operation_variable(False)
+        try:
+            command = self.message_formatter.external_motor_control_message(motor)
+            FirmwareTesterApp.set_operation_variable(True)
+            response = self.tcp_client.send_message(command)
+            print(f"Motor {motor}: {response}")
+        except Exception as e:
+            print(f"Error during external motor control: {e}")
+        finally:
+            FirmwareTesterApp.set_operation_variable(False)
 
     def create_internal_motor_controls(self):
         self.internal_motor_frame = ttk.LabelFrame(self.right_frame, text="Internal Motor Control", padding=(10, 10),
@@ -248,7 +195,8 @@ class FirmwareTesterApp:
 
         motor_var = ttk.StringVar(self.master)
         motor_var.set("Internal Motor 1")
-        motor_menu = ttk.OptionMenu(self.internal_motor_frame, motor_var, "Internal Motor 1", "Internal Motor 2",
+        motor_menu = ttk.OptionMenu(self.internal_motor_frame, motor_var, "Internal Motor 1",
+                                    "Internal Motor 1", "Internal Motor 2",
                                     "Internal Motor 3",
                                     "Internal Motor 4", "Internal Motor 5", "Internal Motor 6")
         motor_menu.pack(side=ttk.LEFT, padx=5)
@@ -270,7 +218,8 @@ class FirmwareTesterApp:
 
         motor_var = ttk.StringVar(self.master)
         motor_var.set("External Motor 1")
-        motor_menu = ttk.OptionMenu(self.external_motor_frame, motor_var, "External Motor 1", "External Motor 2",
+        motor_menu = ttk.OptionMenu(self.external_motor_frame, motor_var, "External Motor 1",
+                                    "External Motor 1", "External Motor 2",
                                     "External Motor 3", "External Motor 4")
         motor_menu.pack(side=ttk.LEFT, padx=5)
 
@@ -284,15 +233,19 @@ class FirmwareTesterApp:
         self.send_relay_command(relay, state)
 
     def send_relay_command(self, relay, state):
-        relay_number = relay.split(" ")[1]
-        if state == "ON":
-            command = self.message_formatter.relay_on_message(relay_number)
-        else:
-            command = self.message_formatter.relay_off_message(relay_number)
-        FirmwareTesterApp.set_operation_variable(True)
-        response = self.tcp_client.send_message(command)
-        FirmwareTesterApp.set_operation_variable(False)
-        print(f"Relay {relay_number} turned {state}: {response}")
+        try:
+            relay_number = relay.split(" ")[1]
+            if state == "ON":
+                command = self.message_formatter.relay_on_message(relay_number)
+            else:
+                command = self.message_formatter.relay_off_message(relay_number)
+            FirmwareTesterApp.set_operation_variable(True)
+            response = self.tcp_client.send_message(command)
+            print(f"Relay {relay_number} turned {state}: {response}")
+        except Exception as e:
+            print(f"Error during relay control: {e}")
+        finally:
+            FirmwareTesterApp.set_operation_variable(False)
 
     def create_relay_controls(self):
         self.relay_frame = ttk.LabelFrame(self.right_frame, text="Relay Control", padding=(10, 10),
@@ -301,7 +254,8 @@ class FirmwareTesterApp:
 
         self.relay_var = ttk.StringVar(self.master)
         self.relay_var.set("Relay 1")
-        self.relay_menu = ttk.OptionMenu(self.relay_frame, self.relay_var, "Relay 1", "Relay 2", "Relay 3", "Relay 4",
+        self.relay_menu = ttk.OptionMenu(self.relay_frame, self.relay_var, "Relay 1", "Relay 1",
+                                         "Relay 2", "Relay 3", "Relay 4",
                                          "Relay 5", "Relay 6", "Relay 7")
         self.relay_menu.pack(side=ttk.LEFT, padx=5)
 
@@ -313,17 +267,94 @@ class FirmwareTesterApp:
                                      style='primary.TButton')
         self.off_button.pack(side=ttk.LEFT, padx=5)
 
-    def connect(self):
-        if self.tcp_client.connect():
-            self.connect_button.config(text="연결 완료")
-            self.start_sensor_polling()
+    def tcp_worker(self):
+        while True:
+            if self.tcp_client.is_connected():
+                try:
+                    sensor_command = self.message_formatter.sensor_message()
+                    sensor_response = self.tcp_client.send_message(sensor_command)
+                    if sensor_response:
+                        self.sensor_queue.put(sensor_response)
 
-    def start_sensor_polling(self):
-        self.sensor_display.poll_sensors()
-        self.load_cell_display.poll_load_cells()
+                    load_cell_command = self.message_formatter.get_loadcell_value_message()
+                    load_cell_response = self.tcp_client.send_message(load_cell_command)
+                    if load_cell_response:
+                        self.load_cell_queue.put(load_cell_response)
+
+                except Exception as e:
+                    print(f"Error in TCP communication: {e}")
+            else:
+                try:
+                    self.tcp_client.connect()
+                except Exception as e:
+                    print(f"Error reconnecting: {e}")
+
+            time.sleep(1)
+
+    def poll_queues(self):
+        self.process_sensor_queue()
+        self.process_load_cell_queue()
+        self.master.after(100, self.poll_queues)
+
+    def process_sensor_queue(self):
+        while not self.sensor_queue.empty():
+            response = self.sensor_queue.get()
+            sensor_value_1 = response[2]
+            sensor_value_2 = response[3]
+            sensor_value_1_map = self._parse_sensor_value_1(sensor_value_1)
+            sensor_value_2_map = self._parse_sensor_value_2(sensor_value_2)
+
+            for sensor_name, status in {**sensor_value_1_map, **sensor_value_2_map}.items():
+                self.sensor_display.update_sensor_status(sensor_name, status)
+
+    def process_load_cell_queue(self):
+        while not self.load_cell_queue.empty():
+            response = self.load_cell_queue.get()
+            load_cell_values = self.parse_load_cell_values(response)
+
+            for i, value in enumerate(load_cell_values):
+                load_cell_name = f"Load Cell {i + 1}"
+                self.load_cell_display.update_load_cell_value(load_cell_name, value)
+
+    @staticmethod
+    def _parse_sensor_value_1(sensor_value):
+        sensor_value_1_map = {
+            'Sensor 1': (sensor_value >> 7) & 1,
+            'Sensor 2': (sensor_value >> 6) & 1,
+            'Sensor 3': (sensor_value >> 5) & 1,
+            'Sensor 4': (sensor_value >> 4) & 1,
+            'Sensor 9': (sensor_value >> 3) & 1,
+            'Sensor 10': (sensor_value >> 2) & 1,
+            'Sensor 11': (sensor_value >> 1) & 1,
+            'Sensor 12': (sensor_value >> 0) & 1,
+        }
+        return sensor_value_1_map
+
+    @staticmethod
+    def _parse_sensor_value_2(sensor_value):
+        sensor_value_2_map = {
+            'Sensor 5': (sensor_value >> 7) & 1,
+            'Sensor 6': (sensor_value >> 6) & 1,
+            'Sensor 7': (sensor_value >> 5) & 1,
+            'Sensor 8': (sensor_value >> 4) & 1,
+            'Sensor 13': (sensor_value >> 3) & 1,
+            'Sensor 14': (sensor_value >> 2) & 1,
+            'Sensor 15': (sensor_value >> 1) & 1,
+            'Sensor 16': (sensor_value >> 0) & 1,
+        }
+        return sensor_value_2_map
+
+    @staticmethod
+    def parse_load_cell_values(response):
+        load_cell_values = []
+        start_index = 2
+        for i in range(16):
+            value = int.from_bytes(response[start_index:start_index + 4], 'little')
+            load_cell_values.append(value)
+            start_index += 4
+        return load_cell_values
 
     def on_close(self):
         FirmwareTesterApp.set_operation_variable(False)
         self.tcp_client.close_connection()
         self.master.destroy()
-

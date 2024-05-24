@@ -1,11 +1,9 @@
 import socket
-
 from loguru import logger
-
 
 class TcpClient:
 
-    def __init__(self, host='local host', port=502):
+    def __init__(self, host='192.168.0.110', port=502):
         self.host = host
         self.port = port
         self.client_socket = None
@@ -23,14 +21,24 @@ class TcpClient:
             self.client_socket = None
         return False
 
+    def is_connected(self):
+        # Check if the socket is None or closed
+        if self.client_socket is None:
+            return False
+        try:
+            pass
+        except socket.error:
+            return False
+        return True
+
     def send_message(self, message):
-        if not self.client_socket:
+        if not self.is_connected():
             logger.warning("No connection. Attempting to reconnect...")
             self.connect()
 
         if self.client_socket:
             try:
-                self.client_socket.sendall(message.encode())
+                self.client_socket.sendall(message)
                 logger.debug("Message sent.")
 
                 return self.client_socket.recv(1024)
