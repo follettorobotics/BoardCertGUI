@@ -1,6 +1,7 @@
 import socket
 from loguru import logger
 
+
 class TcpClient:
 
     def __init__(self, host='192.168.0.110', port=502):
