@@ -1,3 +1,4 @@
+import struct
 import threading
 import queue
 import ctypes
@@ -346,12 +347,14 @@ class FirmwareTesterApp:
 
     @staticmethod
     def parse_load_cell_values(response):
+        num_load_cells = (len(response) - 3) // 4
         load_cell_values = []
-        start_index = 2
-        for i in range(16):
-            value = int.from_bytes(response[start_index:start_index + 4], 'little')
+
+        for i in range(num_load_cells):
+            float_bytes = response[2 + i * 4: 2 + (i + 1) * 4]
+            value = struct.unpack('f', float_bytes)[0]
             load_cell_values.append(value)
-            start_index += 4
+
         return load_cell_values
 
     def on_close(self):
