@@ -1,9 +1,11 @@
 import struct
 import threading
 import queue
-import ctypes
 import time
+
 import ttkbootstrap as ttk
+from loguru import logger
+
 from connection.tcp_client import TcpClient
 from message_formatter.message_formatter import MessageFormatter  # 가정된 메시지 포맷터 클래스
 
@@ -42,8 +44,8 @@ class SensorStatusDisplay(ttk.Frame):
         sensor_frame.pack(padx=10, pady=10, fill=ttk.BOTH, expand=True)
 
         for i, sensor_name in enumerate(self.sensors):
-            row = i // 4
-            column = i % 4
+            row = i % 4
+            column = i // 4
 
             frame = ttk.Frame(sensor_frame, padding=5, style='Card.TFrame')
             frame.grid(row=row, column=column, padx=5, pady=5)
@@ -64,12 +66,12 @@ class SensorStatusDisplay(ttk.Frame):
 
 
 class LoadCellDisplay(ttk.Frame):
-    def __init__(self, master, num_load_cells=16):
+    def __init__(self, master, app, num_load_cells=16):
         super().__init__(master)
         self.load_cells = {f"Load Cell {i + 1}": 0 for i in range(num_load_cells)}
+        self.app = app  # FirmwareTesterApp
         self.load_cell_labels = {}
         self.create_load_cell_displays()
-        self.polling_interval = 1000  # milliseconds
 
     def create_load_cell_displays(self):
         load_cell_frame = ttk.LabelFrame(self, text="Load Cells", padding=(10, 10), style='Info.TLabelframe')
@@ -88,11 +90,16 @@ class LoadCellDisplay(ttk.Frame):
             value_label = ttk.Label(frame, text="0", font=("Helvetica", 14))
             value_label.pack()
 
+            read_button = ttk.Button(frame, text="읽기", command=lambda idx=i + 1: self.app.read_load_cell(idx))
+            read_button.pack()
+
             self.load_cell_labels[load_cell_name] = value_label
 
-    def update_load_cell_value(self, load_cell_name, value):
-        label = self.load_cell_labels[load_cell_name]
-        label.config(text=f"{value}")
+    def update_load_cell_value(self, load_cell_index, value):
+        load_cell_name = f"Load Cell {load_cell_index}"
+        if load_cell_name in self.load_cell_labels:
+            label = self.load_cell_labels[load_cell_name]
+            label.config(text=f"{value}")
 
 
 class FirmwareTesterApp:
@@ -116,9 +123,10 @@ class FirmwareTesterApp:
         self.tcp_client = TcpClient()
         self.message_formatter = MessageFormatter()
         self.sensor_display = SensorStatusDisplay(self.master)
-        self.load_cell_display = LoadCellDisplay(self.master)
+        self.load_cell_display = LoadCellDisplay(self.master, self, num_load_cells=16)  # 수정된 부분
         self.sensor_queue = queue.Queue()
         self.load_cell_queue = queue.Queue()
+        self.is_connected = False
 
         self.create_widgets()
         self.poll_queues()
@@ -152,7 +160,7 @@ class FirmwareTesterApp:
         self.bottom_frame = ttk.Frame(self.main_frame.scrollable_frame)
         self.bottom_frame.pack(side=ttk.TOP, fill=ttk.BOTH, padx=20, pady=(5, 20), expand=True)
 
-        self.load_cell_display = LoadCellDisplay(self.bottom_frame)
+        self.load_cell_display = LoadCellDisplay(self.bottom_frame, self, num_load_cells=16)  # 수정된 부분
         self.load_cell_display.pack(side=ttk.TOP, padx=20, pady=(5, 10), fill=ttk.BOTH, expand=True)
 
         self.status_bar = ttk.Label(self.master, text="Ready", relief=ttk.SUNKEN, anchor=ttk.W)
@@ -160,34 +168,52 @@ class FirmwareTesterApp:
 
     def connect(self):
         if self.tcp_client.connect():
+            self.is_connected = True
             self.connect_button.config(text="연결 완료")
         else:
+            self.is_connected = False
             self.connect_button.config(text="연결 실패")
 
+    def read_load_cell(self, load_cell_index):
+        if self.is_connected:
+            try:
+                command = self.message_formatter.get_loadcell_value_message(load_cell_index)
+                response = self.tcp_client.send_message(command)
+                logger.debug(f"request: {command}")
+                logger.debug(f"request: {response}")
+                if response:
+                    value = struct.unpack('f', response[2:6])[0]
+                    rounded_value = round(value, 2)
+                    self.load_cell_display.update_load_cell_value(load_cell_index, rounded_value)
+            except Exception as e:
+                print(f"Error reading load cell {load_cell_index}: {e}")
+
     def internal_motor_callback(self, motor, direction):
-        try:
-            if direction == "CW":
-                command = self.message_formatter.internal_motor_cw_message(motor)
-            else:
-                command = self.message_formatter.internal_motor_ccw_message(motor)
-            FirmwareTesterApp.set_operation_variable(True)
-            response = self.tcp_client.send_message(command)
-            print(f"Motor {motor} turned {direction}: {response}")
-        except Exception as e:
-            print(f"Error during motor control: {e}")
-        finally:
-            FirmwareTesterApp.set_operation_variable(False)
+        if self.is_connected:
+            try:
+                if direction == "CW":
+                    command = self.message_formatter.internal_motor_cw_message(motor)
+                else:
+                    command = self.message_formatter.internal_motor_ccw_message(motor)
+                FirmwareTesterApp.set_operation_variable(True)
+                response = self.tcp_client.send_message(command)
+                print(f"Motor {motor} turned {direction}: {response}")
+            except Exception as e:
+                print(f"Error during motor control: {e}")
+            finally:
+                FirmwareTesterApp.set_operation_variable(False)
 
     def external_motor_callback(self, motor):
-        try:
-            command = self.message_formatter.external_motor_control_message(motor)
-            FirmwareTesterApp.set_operation_variable(True)
-            response = self.tcp_client.send_message(command)
-            print(f"Motor {motor}: {response}")
-        except Exception as e:
-            print(f"Error during external motor control: {e}")
-        finally:
-            FirmwareTesterApp.set_operation_variable(False)
+        if self.is_connected:
+            try:
+                command = self.message_formatter.external_motor_control_message(motor)
+                FirmwareTesterApp.set_operation_variable(True)
+                response = self.tcp_client.send_message(command)
+                print(f"Motor {motor}: {response}")
+            except Exception as e:
+                print(f"Error during external motor control: {e}")
+            finally:
+                FirmwareTesterApp.set_operation_variable(False)
 
     def create_internal_motor_controls(self):
         self.internal_motor_frame = ttk.LabelFrame(self.right_frame, text="Internal Motor Control", padding=(10, 10),
@@ -230,8 +256,9 @@ class FirmwareTesterApp:
         control_button.pack(side=ttk.LEFT, padx=5)
 
     def relay_callback(self, state):
-        relay = self.relay_var.get()
-        self.send_relay_command(relay, state)
+        if self.is_connected:
+            relay = self.relay_var.get()
+            self.send_relay_command(relay, state)
 
     def send_relay_command(self, relay, state):
         try:
@@ -270,17 +297,12 @@ class FirmwareTesterApp:
 
     def tcp_worker(self):
         while True:
-            if self.tcp_client.is_connected():
+            if self.is_connected:
                 try:
                     sensor_command = self.message_formatter.sensor_message()
                     sensor_response = self.tcp_client.send_message(sensor_command)
                     if sensor_response:
                         self.sensor_queue.put(sensor_response)
-
-                    load_cell_command = self.message_formatter.get_loadcell_value_message()
-                    load_cell_response = self.tcp_client.send_message(load_cell_command)
-                    if load_cell_response:
-                        self.load_cell_queue.put(load_cell_response)
 
                 except Exception as e:
                     print(f"Error in TCP communication: {e}")
@@ -294,7 +316,6 @@ class FirmwareTesterApp:
 
     def poll_queues(self):
         self.process_sensor_queue()
-        self.process_load_cell_queue()
         self.master.after(100, self.poll_queues)
 
     def process_sensor_queue(self):
@@ -307,15 +328,6 @@ class FirmwareTesterApp:
 
             for sensor_name, status in {**sensor_value_1_map, **sensor_value_2_map}.items():
                 self.sensor_display.update_sensor_status(sensor_name, status)
-
-    def process_load_cell_queue(self):
-        while not self.load_cell_queue.empty():
-            response = self.load_cell_queue.get()
-            load_cell_values = self.parse_load_cell_values(response)
-
-            for i, value in enumerate(load_cell_values):
-                load_cell_name = f"Load Cell {i + 1}"
-                self.load_cell_display.update_load_cell_value(load_cell_name, value)
 
     @staticmethod
     def _parse_sensor_value_1(sensor_value):
@@ -345,19 +357,8 @@ class FirmwareTesterApp:
         }
         return sensor_value_2_map
 
-    @staticmethod
-    def parse_load_cell_values(response):
-        num_load_cells = (len(response) - 3) // 4
-        load_cell_values = []
-
-        for i in range(num_load_cells):
-            float_bytes = response[2 + i * 4: 2 + (i + 1) * 4]
-            value = struct.unpack('f', float_bytes)[0]
-            load_cell_values.append(value)
-
-        return load_cell_values
-
     def on_close(self):
         FirmwareTesterApp.set_operation_variable(False)
         self.tcp_client.close_connection()
         self.master.destroy()
+

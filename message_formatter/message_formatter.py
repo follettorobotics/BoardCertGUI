@@ -1,3 +1,6 @@
+from loguru import logger
+
+
 class MessageFormatter:
 
     INTERNAL_MOTOR_PARAMETER = {
@@ -129,12 +132,14 @@ class MessageFormatter:
         return bytes(request)
 
     @staticmethod
-    def get_loadcell_value_message():
+    def get_loadcell_value_message(cell_index):
         # REQUEST_HEAD
         request = bytearray()
         request.append(0x7E)
         # COMMAND
         request.append(0xB4)
+        # INDEX
+        request.append(cell_index-1)
         # END BYTE
         request.append(0XAA)
 

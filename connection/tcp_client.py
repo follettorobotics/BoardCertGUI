@@ -40,7 +40,6 @@ class TcpClient:
         if self.client_socket:
             try:
                 self.client_socket.sendall(message)
-                logger.debug("Message sent.")
 
                 return self.client_socket.recv(1024)
             except Exception as e:
