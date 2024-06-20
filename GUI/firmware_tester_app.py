@@ -78,8 +78,8 @@ class LoadCellDisplay(ttk.Frame):
         load_cell_frame.pack(padx=10, pady=10, fill=ttk.BOTH, expand=True)
 
         for i, load_cell_name in enumerate(self.load_cells):
-            row = i // 4
-            column = i % 4
+            row = i % 4
+            column = i // 4
 
             frame = ttk.Frame(load_cell_frame, padding=10, style='Card.TFrame')
             frame.grid(row=row, column=column, padx=10, pady=10)
