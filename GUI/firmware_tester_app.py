@@ -1,13 +1,15 @@
 import struct
+import sys
 import threading
 import queue
 import time
 
 import ttkbootstrap as ttk
-from loguru import logger
 
+from Log.gui_log_sink import GuiLogSink, StdoutRedirector
+from Log.logger_config import setup_logger
 from connection.tcp_client import TcpClient
-from message_formatter.message_formatter import MessageFormatter  # 가정된 메시지 포맷터 클래스
+from message_formatter.message_formatter import MessageFormatter
 
 
 class ScrollableFrame(ttk.Frame):
@@ -127,6 +129,8 @@ class FirmwareTesterApp:
         self.sensor_queue = queue.Queue()
         self.load_cell_queue = queue.Queue()
         self.is_connected = False
+        self.log_queue = queue.Queue()
+        self.logger = self.setup_logging()
 
         self.create_widgets()
         self.poll_queues()
@@ -137,6 +141,16 @@ class FirmwareTesterApp:
     def create_widgets(self):
         self.connect_button = ttk.Button(self.master, text="연결 시도", command=self.connect, style='primary.TButton')
         self.connect_button.pack(pady=(10, 5))
+
+        self.log_frame = ttk.Frame(self.master)
+        self.log_frame.pack(pady=5, fill=ttk.BOTH, expand=True)
+
+        self.log_text = ttk.Text(self.log_frame, wrap=ttk.WORD, state='disabled')
+        self.log_text.pack(fill=ttk.BOTH, expand=True)
+
+        self.log_scrollbar = ttk.Scrollbar(self.log_frame, orient="vertical", command=self.log_text.yview)
+        self.log_scrollbar.pack(side=ttk.RIGHT, fill=ttk.Y)
+        self.log_text.configure(yscrollcommand=self.log_scrollbar.set)
 
         self.main_frame = ScrollableFrame(self.master)
         self.main_frame.pack(pady=5, fill=ttk.BOTH, expand=True)
@@ -166,6 +180,19 @@ class FirmwareTesterApp:
         self.status_bar = ttk.Label(self.master, text="Ready", relief=ttk.SUNKEN, anchor=ttk.W)
         self.status_bar.pack(side=ttk.BOTTOM, fill=ttk.X)
 
+    def setup_logging(self):
+        logger = setup_logger(self.log_queue)
+
+        # Redirect stdout and stderr
+        sys.stdout = StdoutRedirector(self.log_queue)
+        sys.stderr = StdoutRedirector(self.log_queue)
+
+        return logger
+
+    def log_message(self, message):
+        self.log_text.insert(ttk.END, message + '\n')
+        self.log_text.see(ttk.END)
+
     def connect(self):
         if self.tcp_client.connect():
             self.is_connected = True
@@ -179,8 +206,8 @@ class FirmwareTesterApp:
             try:
                 command = self.message_formatter.get_loadcell_value_message(load_cell_index)
                 response = self.tcp_client.send_message(command)
-                logger.debug(f"request: {command}")
-                logger.debug(f"request: {response}")
+                self.logger.debug(f"request: {command}")
+                self.logger.debug(f"request: {response}")
                 if response:
                     value = struct.unpack('f', response[2:6])[0]
                     rounded_value = round(value, 2)
@@ -316,7 +343,16 @@ class FirmwareTesterApp:
 
     def poll_queues(self):
         self.process_sensor_queue()
+        self.process_log_queue()
         self.master.after(100, self.poll_queues)
+
+    def process_log_queue(self):
+        while not self.log_queue.empty():
+            message = self.log_queue.get()
+            self.log_text.configure(state='normal')
+            self.log_text.insert(ttk.END, str(message))
+            self.log_text.see(ttk.END)
+            self.log_text.configure(state='disabled')
 
     def process_sensor_queue(self):
         while not self.sensor_queue.empty():

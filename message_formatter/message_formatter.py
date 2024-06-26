@@ -1,4 +1,4 @@
-from loguru import logger
+from Log.logger_config import logger
 
 
 class MessageFormatter:
@@ -28,13 +28,17 @@ class MessageFormatter:
         """
         # Type checking
         if not isinstance(byte_array, (bytes, bytearray, list)):
+            logger.debug(f"Input must be of type bytes, bytearray, or list of integers")
             raise ValueError("Input must be of type bytes, bytearray, or list of integers")
+
 
         # Element value checking
         for x in byte_array:
             if not isinstance(x, int):
+                logger.debug(f"InpElement is not an integer: {x}")
                 raise ValueError(f"Element is not an integer: {x}")
             if not (0 <= x <= 255):
+                logger.debug(f"Byte value out of range: {x}")
                 raise ValueError(f"Byte value out of range: {x}")
 
         return ' '.join('{:02x}'.format(x) for x in byte_array)

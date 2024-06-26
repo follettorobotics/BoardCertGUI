@@ -1,5 +1,5 @@
 import socket
-from loguru import logger
+from Log.logger_config import logger
 
 
 class TcpClient:
@@ -43,7 +43,7 @@ class TcpClient:
 
                 return self.client_socket.recv(1024)
             except Exception as e:
-                logger.error(f"Failed to send message: {e}")
+                logger.info(f"Failed to send message: {e}")
                 self.client_socket = None  # Set socket to None to trigger reconnection next time
 
     def close_connection(self):
