@@ -15,10 +15,10 @@ class TcpClient:
         self.client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         try:
             self.client_socket.connect((self.host, self.port))
-            logger.debug("Connected to server.")
+            logger.debug("연결 성공.")
             return True
         except Exception as e:
-            logger.error(f"Connection failed: {e}")
+            logger.error(f"연결 실패: {e}")
             self.client_socket = None
         return False
 
@@ -34,7 +34,7 @@ class TcpClient:
 
     def send_message(self, message):
         if not self.is_connected():
-            logger.warning("No connection. Attempting to reconnect...")
+            logger.warning("연결 에러. 재연결 시도 중...")
             self.connect()
 
         if self.client_socket:
@@ -43,15 +43,14 @@ class TcpClient:
 
                 return self.client_socket.recv(1024)
             except Exception as e:
-                logger.info(f"Failed to send message: {e}")
+                logger.info(f"요청 전송 실패: {e}")
                 self.client_socket = None  # Set socket to None to trigger reconnection next time
 
     def close_connection(self):
         if self.client_socket:
             try:
                 self.client_socket.close()
-                logger.debug("Connection closed.")
             except Exception as e:
-                logger.error(f"Failed to close connection: {e}")
+                logger.error(f"연결 종료 실패: {e}")
             finally:
                 self.client_socket = None

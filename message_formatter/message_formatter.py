@@ -31,7 +31,6 @@ class MessageFormatter:
             logger.debug(f"Input must be of type bytes, bytearray, or list of integers")
             raise ValueError("Input must be of type bytes, bytearray, or list of integers")
 
-
         # Element value checking
         for x in byte_array:
             if not isinstance(x, int):
