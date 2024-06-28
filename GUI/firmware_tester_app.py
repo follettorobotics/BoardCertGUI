@@ -3,7 +3,7 @@ import sys
 import threading
 import queue
 import time
-from tkinter import Canvas, Label
+from tkinter import Canvas, Label, messagebox
 
 import ttkbootstrap as ttk
 
@@ -51,7 +51,7 @@ class SensorStatusDisplay(ttk.Frame):
 class LoadCellDisplay(ttk.Frame):
     def __init__(self, master, app, num_load_cells=16):
         super().__init__(master)
-        self.load_cells = {f"Load Cell {i + 1}": 0 for i in range(num_load_cells)}
+        self.load_cells = {f"로드셀 {i + 1}": 0 for i in range(num_load_cells)}
         self.app = app  # FirmwareTesterApp
         self.load_cell_labels = {}
         self.font = ("Helvetica", 12)
@@ -390,11 +390,16 @@ class FirmwareTesterApp:
                 try:
                     sensor_command = self.message_formatter.sensor_message()
                     sensor_response = self.tcp_client.send_message(sensor_command)
+                    if not FirmwareTesterApp.get_operation_variable():
+                        if sensor_response is None or len(sensor_response) == 0:
+                            print(f"FirmwareTesterApp.get_operation_variable()")
+                            self.show_error_message("에러", "tcp 통신 에러 발생했습니다. 랜선 연결을 확인하고 다시 프로그램을 실행해주세요.")
                     if sensor_response:
                         self.sensor_queue.put(sensor_response)
 
                 except Exception as e:
                     logger.error(f"TCP 통신 에러: {e}")
+                    self.connect_button.config(text="연결 실패")
                     print(f"Error in TCP communication: {e}")
             else:
                 try:
@@ -432,30 +437,33 @@ class FirmwareTesterApp:
     @staticmethod
     def _parse_sensor_value_1(sensor_value):
         sensor_value_1_map = {
-            'Sensor 1': (sensor_value >> 7) & 1,
-            'Sensor 2': (sensor_value >> 6) & 1,
-            'Sensor 3': (sensor_value >> 5) & 1,
-            'Sensor 4': (sensor_value >> 4) & 1,
-            'Sensor 9': (sensor_value >> 3) & 1,
-            'Sensor 10': (sensor_value >> 2) & 1,
-            'Sensor 11': (sensor_value >> 1) & 1,
-            'Sensor 12': (sensor_value >> 0) & 1,
+            '센서 1': (sensor_value >> 7) & 1,
+            '센서 2': (sensor_value >> 6) & 1,
+            '센서 3': (sensor_value >> 5) & 1,
+            '센서 4': (sensor_value >> 4) & 1,
+            '센서 9': (sensor_value >> 3) & 1,
+            '센서 10': (sensor_value >> 2) & 1,
+            '센서 11': (sensor_value >> 1) & 1,
+            '센서 12': (sensor_value >> 0) & 1,
         }
         return sensor_value_1_map
 
     @staticmethod
     def _parse_sensor_value_2(sensor_value):
         sensor_value_2_map = {
-            'Sensor 5': (sensor_value >> 7) & 1,
-            'Sensor 6': (sensor_value >> 6) & 1,
-            'Sensor 7': (sensor_value >> 5) & 1,
-            'Sensor 8': (sensor_value >> 4) & 1,
-            'Sensor 13': (sensor_value >> 3) & 1,
-            'Sensor 14': (sensor_value >> 2) & 1,
-            'Sensor 15': (sensor_value >> 1) & 1,
-            'Sensor 16': (sensor_value >> 0) & 1,
+            '센서 5': (sensor_value >> 7) & 1,
+            '센서 6': (sensor_value >> 6) & 1,
+            '센서 7': (sensor_value >> 5) & 1,
+            '센서 8': (sensor_value >> 4) & 1,
+            '센서 13': (sensor_value >> 3) & 1,
+            '센서 14': (sensor_value >> 2) & 1,
+            '센서 15': (sensor_value >> 1) & 1,
+            '센서 16': (sensor_value >> 0) & 1,
         }
         return sensor_value_2_map
+
+    def show_error_message(self, title, message):
+        self.master.after(0, lambda: messagebox.showerror(title, message))
 
     def on_close(self):
         FirmwareTesterApp.set_operation_variable(False)

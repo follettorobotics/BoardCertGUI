@@ -8,6 +8,7 @@ class TcpClient:
         self.host = host
         self.port = port
         self.client_socket = None
+        self.reconnected = None
 
     def connect(self):
         if self.client_socket is not None:
@@ -15,7 +16,9 @@ class TcpClient:
         self.client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         try:
             self.client_socket.connect((self.host, self.port))
-            logger.debug("연결 성공.")
+            if self.reconnected:
+                logger.info(f"재연결 완료")
+                self.reconnected = False
             return True
         except Exception as e:
             logger.error(f"연결 실패: {e}")
@@ -35,6 +38,7 @@ class TcpClient:
     def send_message(self, message):
         if not self.is_connected():
             logger.warning("연결 에러. 재연결 시도 중...")
+            self.reconnected = True
             self.connect()
 
         if self.client_socket:
