@@ -289,13 +289,14 @@ class FirmwareTesterApp:
         self.cw_button = ttk.Button(button_frame, text="CW",
                                     command=lambda: self.internal_motor_callback(motor_var.get(), "CW"),
                                     style='primary.TButton', width=10)
-        self.cw_button.pack(padx=5)
+        self.cw_button.pack(side=ttk.LEFT, padx=5)
 
         self.ccw_button = ttk.Button(button_frame, text="CCW",
                                      command=lambda: self.internal_motor_callback(motor_var.get(), "CCW"),
                                      style='primary.TButton', width=10)
-        self.ccw_button.pack(padx=5)
+        self.ccw_button.pack(side=ttk.LEFT, padx=5)
         button_frame.grid_columnconfigure(0, weight=1)
+        button_frame.grid_columnconfigure(1, weight=1)
 
         inner_frame.columnconfigure(1, weight=1)
 
@@ -314,6 +315,7 @@ class FirmwareTesterApp:
                                           "External Motor 3", "External Motor 4"],
                                   state="readonly", width=20)
         motor_menu.grid(row=0, column=1, padx=5, pady=5, sticky='ew')
+
 
         button_frame = ttk.Frame(inner_frame)
         button_frame.grid(row=1, column=0, columnspan=2, pady=10)
