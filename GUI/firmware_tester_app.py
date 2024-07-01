@@ -54,7 +54,7 @@ class LoadCellDisplay(ttk.Frame):
         self.load_cells = {f"로드셀 {i + 1}": 0 for i in range(num_load_cells)}
         self.app = app  # FirmwareTesterApp
         self.load_cell_labels = {}
-        self.font = ("Helvetica", 12)
+        self.font = ("Helvetica", 11)
         self.create_load_cell_displays()
 
     def create_load_cell_displays(self):
