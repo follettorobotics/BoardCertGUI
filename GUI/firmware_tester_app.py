@@ -83,7 +83,7 @@ class LoadCellDisplay(ttk.Frame):
             self.load_cell_labels[load_cell_name] = value_label
 
     def update_load_cell_value(self, load_cell_index, value):
-        load_cell_name = f"Load Cell {load_cell_index}"
+        load_cell_name = f"로드셀 {load_cell_index}"
         if load_cell_name in self.load_cell_labels:
             label = self.load_cell_labels[load_cell_name]
             label.config(text=f"{value}")

@@ -19,8 +19,8 @@ if __name__ == "__main__":
     user32 = ctypes.windll.user32
     screen_width = user32.GetSystemMetrics(0)
     screen_height = user32.GetSystemMetrics(1)
-    window_width = int(screen_width * 0.5)
-    window_height = int(screen_height * 0.65)
+    window_width = int(screen_width * 0.6)
+    window_height = int(screen_height * 0.9)
 
     center_window(app, window_width, window_height)
 
